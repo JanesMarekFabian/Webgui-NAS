@@ -30,13 +30,13 @@ spec:
           name: http
         env:
         # Database Configuration (Shared PostgreSQL)
-        - name: MYSQL_HOST
+        - name: POSTGRES_HOST
           value: "postgres-service.shared-services.svc.cluster.local"
-        - name: MYSQL_DATABASE
+        - name: POSTGRES_DATABASE
           value: "nextcloud"
-        - name: MYSQL_USER
+        - name: POSTGRES_USER
           value: "postgres"
-        - name: MYSQL_PASSWORD
+        - name: POSTGRES_PASSWORD
           value: "shared_postgres_password_123"
         # Nextcloud Configuration
         - name: NEXTCLOUD_ADMIN_USER
