@@ -1,214 +1,214 @@
-# 🚀 Nextcloud NAS mit Web-GUI für Kubernetes
+# WebGUI-NAS - MinIO S3-API Storage mit Web-Interface
 
-Eine komplette Nextcloud NAS-Lösung mit Web-Interface für Ihr Kubernetes Cluster!
+## 🎯 Übersicht
 
-## 📋 Was Sie bekommen
+Dieses Projekt bietet zwei moderne Storage-Lösungen mit S3-API und Web-Interface für Ihr Kubernetes Cluster:
 
-### 🎯 Nextcloud (Vollständige NAS-Lösung)
-- ✅ **Web-GUI** - Benutzerfreundliche Oberfläche
-- ✅ **File Management** - Dateien hochladen, herunterladen, verwalten
-- ✅ **User Management** - Mehrere Benutzer
-- ✅ **Mobile Apps** - iOS/Android Apps verfügbar
-- ✅ **Desktop Apps** - Windows/Mac/Linux Apps
-- ✅ **Calendar & Contacts** - Vollständige PIM-Funktionen
-- ✅ **Notes & Tasks** - Produktivitäts-Tools
-- ✅ **File Sharing** - Links teilen
-- ✅ **Backup & Sync** - Automatische Synchronisation
-- ✅ **Plugin System** - Erweiterbare Funktionalität
-- ✅ **Shared PostgreSQL** - Zentrale Datenbank für alle Projekte
+1. **MinIO + MinIO Console** - S3-API mit eingebautem Web-Interface
+2. **MinIO + FileBrowser** - S3-API mit einfachem File-Manager
 
 ## 🏗️ Architektur
 
+### Option 1: MinIO + MinIO Console
 ```
-Kubernetes Cluster
-├── shared-services Namespace
-│   ├── PostgreSQL (Shared Database für alle Projekte)
-│   │   ├── nextcloud
-│   │   ├── azure_b2c_booking
-│   │   ├── ecommerce_system
-│   │   ├── crm_system
-│   │   ├── analytics
-│   │   └── dev_tools
-│   └── Nextcloud (Vollständige NAS)
-└── Persistent Storage
-    ├── Nextcloud Data (100Gi)
-    ├── Nextcloud Config (5Gi)
-    ├── Nextcloud Apps (10Gi)
-    └── PostgreSQL Shared (50Gi)
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Browser   │───▶│  MinIO Console  │───▶│  MinIO Storage  │
+│                 │    │   (Port 9001)   │    │   (Port 9000)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │                         │
+                              ▼                         ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Web-Interface │    │   S3-API        │
+                       │   Bucket Mgmt   │    │   File Storage  │
+                       │   User Mgmt     │    │   Metadata      │
+                       └─────────────────┘    └─────────────────┘
+```
+
+### Option 2: MinIO + FileBrowser
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Browser   │───▶│   FileBrowser   │───▶│  MinIO Storage  │
+│                 │    │   (Port 80)     │    │   (Port 9000)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │                         │
+                              ▼                         ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   File Manager  │    │   S3-API        │
+                       │   Upload/Download│    │   File Storage  │
+                       │   Simple UI     │    │   Metadata      │
+                       └─────────────────┘    └─────────────────┘
 ```
 
 ## 🚀 Installation
 
-### 1. Automatische Installation
+### Voraussetzungen
+- Kubernetes Cluster (k3s empfohlen)
+- kubectl konfiguriert
+- Storage Class (local-path empfohlen)
+
+### Option 1: MinIO + MinIO Console
 ```bash
-# Script ausführen
-./deploy-nas.sh
+# Deployment starten
+chmod +x deploy-minio-console.sh
+./deploy-minio-console.sh
 ```
 
-### 2. Manuelle Installation
+### Option 2: MinIO + FileBrowser
 ```bash
-# Namespace erstellen
-kubectl create namespace shared-services
-
-# Shared PostgreSQL für alle Projekte
-kubectl apply -f postgres-nextcloud.yaml
-
-# Nextcloud PVCs
-kubectl apply -f nextcloud-pvcs.yaml
-
-# Nextcloud Deployment
-kubectl apply -f nextcloud-deployment.yaml
+# Deployment starten
+chmod +x deploy-minio-filebrowser.sh
+./deploy-minio-filebrowser.sh
 ```
 
 ## 🌐 Zugriff
 
-### Nextcloud (Vollständige NAS)
-```bash
-# Web Interface
-http://192.168.1.101:<NodePort>
-http://192.168.1.110:<NodePort>
+### MinIO + MinIO Console
+- **Web-Interface**: http://192.168.1.101:30001
+- **S3-API**: http://192.168.1.101:30000
+- **Credentials**: admin / minio123
 
-# Admin Login
-Username: admin
-Password: admin_secure_password_123
+### MinIO + FileBrowser
+- **Web-Interface**: http://192.168.1.101:30002
+- **S3-API**: minio-service.storage.svc.cluster.local:9000
+- **Credentials**: admin / admin (erste Anmeldung)
+
+## 🔧 Konfiguration
+
+### S3-API Zugriff
+```bash
+# AWS CLI Konfiguration
+aws configure set aws_access_key_id admin
+aws configure set aws_secret_access_key minio123
+aws configure set default.region us-east-1
+
+# MinIO Client
+mc alias set minio http://192.168.1.101:30000 admin minio123
 ```
 
-
-### Port Forwarding (Alternative)
+### S3-API Commands
 ```bash
-# Nextcloud
-kubectl port-forward service/nextcloud-service 8080:80 -n shared-services
-# Dann: http://localhost:8080
+# Bucket erstellen
+aws s3 mb s3://my-bucket --endpoint-url http://192.168.1.101:30000
+
+# Datei hochladen
+aws s3 cp file.txt s3://my-bucket/ --endpoint-url http://192.168.1.101:30000
+
+# Dateien auflisten
+aws s3 ls s3://my-bucket/ --endpoint-url http://192.168.1.101:30000
 ```
 
 ## 📊 Monitoring
 
-### Pod Status prüfen
+### Pod Status
 ```bash
-kubectl get pods -n shared-services
+kubectl get pods -n storage
+kubectl get services -n storage
+kubectl get pvc -n storage
 ```
 
-### PVC Status prüfen
+### Logs
 ```bash
-kubectl get pvc -n shared-services
+# MinIO Logs
+kubectl logs -f deployment/minio -n storage
+
+# FileBrowser Logs
+kubectl logs -f deployment/filebrowser -n storage
 ```
 
-### Services prüfen
+## 🔒 Sicherheit
+
+### Standard Credentials ändern
 ```bash
-kubectl get services -n shared-services
+# MinIO Credentials
+kubectl set env deployment/minio MINIO_ROOT_USER=newuser -n storage
+kubectl set env deployment/minio MINIO_ROOT_PASSWORD=newpassword -n storage
+
+# FileBrowser Credentials
+# Nach erster Anmeldung über Web-Interface ändern
 ```
 
-### Logs anzeigen
+### TLS/SSL
 ```bash
-# Nextcloud Logs
-kubectl logs -f deployment/nextcloud -n shared-services
-
-# PostgreSQL Logs
-kubectl logs -f deployment/postgres-shared -n shared-services
+# Ingress mit TLS konfigurieren
+kubectl apply -f ingress-tls.yaml
 ```
 
-## 🔧 Konfiguration
+## 🗂️ Storage Management
 
-### Resource Limits
-```yaml
-# Nextcloud
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "300m"
-  limits:
-    memory: "1Gi"
-    cpu: "1000m"
-
-# PostgreSQL (Shared)
-resources:
-  requests:
-    memory: "1Gi"
-    cpu: "500m"
-  limits:
-    memory: "2Gi"
-    cpu: "1000m"
-```
-
-### Storage
-```yaml
-# Nextcloud Data
-storage: 100Gi
-
-# Nextcloud Config
-storage: 5Gi
-
-# Nextcloud Apps
-storage: 10Gi
-
-# PostgreSQL Shared (für alle Projekte)
-storage: 50Gi
-```
-
-## 🎯 Features
-
-### Nextcloud Features
-- 📁 **File Management** - Vollständige Dateiverwaltung
-- 👥 **User Management** - Mehrere Benutzer
-- 📱 **Mobile Apps** - iOS/Android
-- 💻 **Desktop Apps** - Windows/Mac/Linux
-- 📅 **Calendar** - Terminverwaltung
-- 📞 **Contacts** - Kontaktverwaltung
-- 📝 **Notes** - Notizen
-- ✅ **Tasks** - Aufgabenverwaltung
-- 🔗 **File Sharing** - Dateien teilen
-- 🔄 **Sync** - Automatische Synchronisation
-- 🔌 **Plugins** - Erweiterbare Funktionalität
-
-### Shared PostgreSQL Features
-- 🗄️ **Multi-Database** - Separate Datenbanken für alle Projekte
-- 📊 **Performance Optimized** - Optimierte Einstellungen
-- 🔍 **Monitoring Ready** - pg_stat_statements aktiviert
-- 🔄 **Backup Ready** - Einfache Backup-Strategien
-- 🚀 **Scalable** - Für alle zukünftigen Projekte
-
-## 🛠️ Wartung
+### Persistent Volumes
+- **MinIO Data**: 100Gi (local-path)
+- **FileBrowser Config**: 5Gi (local-path)
 
 ### Backup
 ```bash
-# PostgreSQL Backup (alle Datenbanken)
-kubectl exec -it deployment/postgres-shared -n shared-services -- pg_dumpall -U postgres > all_databases_backup.sql
+# MinIO Data backup
+kubectl exec -it deployment/minio -n storage -- mc mirror /data /backup
 
-# Einzelne Datenbank Backup
-kubectl exec -it deployment/postgres-shared -n shared-services -- pg_dump -U postgres nextcloud > nextcloud_backup.sql
-kubectl exec -it deployment/postgres-shared -n shared-services -- pg_dump -U postgres azure_b2c_booking > azure_b2c_backup.sql
-
-# PVC Backup (Snapshots)
-kubectl create -f pvc-snapshot.yaml
+# PVC backup
+kubectl create job --from=cronjob/backup-job backup-$(date +%Y%m%d)
 ```
 
-### Updates
+## 🔄 Updates
+
+### MinIO Update
 ```bash
-# Nextcloud Update
-kubectl set image deployment/nextcloud nextcloud=nextcloud:latest -n shared-services
-
-# PostgreSQL Update
-kubectl set image deployment/postgres-shared postgres=postgres:15-alpine -n shared-services
+kubectl set image deployment/minio minio=minio/minio:latest -n storage
 ```
 
-### Scaling
+### FileBrowser Update
 ```bash
-# Nextcloud Scaling (nicht empfohlen für NAS)
-kubectl scale deployment nextcloud --replicas=2 -n shared-services
-
-# PostgreSQL Scaling (nicht empfohlen - Single Instance)
-# Für High Availability: PostgreSQL Cluster mit Patroni
+kubectl set image deployment/filebrowser filebrowser=filebrowser/filebrowser:latest -n storage
 ```
 
-## 🎉 Fertig!
+## 🧹 Cleanup
 
-Ihre Nextcloud NAS mit Web-GUI ist jetzt bereit! 
+### Deployment entfernen
+```bash
+# MinIO + Console
+kubectl delete -f minio-deployment.yaml
 
-**Was Sie haben:**
-- 🎯 **Nextcloud** - Vollständige NAS-Funktionalität
-- 🗄️ **Shared PostgreSQL** - Zentrale Datenbank für alle Projekte
-- 📱 **Mobile Apps** - iOS/Android Support
-- 💻 **Desktop Apps** - Windows/Mac/Linux Support
-- 🔄 **Backup & Sync** - Automatische Synchronisation
+# MinIO + FileBrowser
+kubectl delete -f filebrowser-deployment.yaml
 
-**Viel Spaß mit Ihrer neuen Nextcloud NAS!** 🚀
+# Namespace löschen
+kubectl delete namespace storage
+```
+
+## 🆚 Vergleich
+
+| Feature | MinIO Console | FileBrowser |
+|---------|---------------|-------------|
+| **Interface** | Enterprise | Einfach |
+| **Features** | Bucket Mgmt, Users | File Manager |
+| **Komplexität** | Hoch | Niedrig |
+| **S3-API** | ✅ | ✅ |
+| **User Management** | ✅ | ❌ |
+| **Bucket Management** | ✅ | ❌ |
+| **Performance** | Hoch | Mittel |
+
+## 🎯 Empfehlung
+
+### Für Enterprise/Advanced:
+- **MinIO + MinIO Console**
+- Vollständige S3-API Features
+- User und Bucket Management
+- Enterprise-ready
+
+### Für Einfachheit:
+- **MinIO + FileBrowser**
+- Einfaches File Management
+- Weniger Features
+- Einfache Wartung
+
+## 🔗 Links
+
+- [MinIO Documentation](https://docs.min.io/)
+- [FileBrowser Documentation](https://filebrowser.org/)
+- [S3 API Reference](https://docs.aws.amazon.com/s3/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+
+## 📝 Changelog
+
+- **v1.0**: Initial Release mit MinIO + Console
+- **v1.1**: FileBrowser Option hinzugefügt
+- **v1.2**: Nextcloud entfernt, Fokus auf S3-API
