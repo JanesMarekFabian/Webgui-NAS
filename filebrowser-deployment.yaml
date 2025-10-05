@@ -142,6 +142,10 @@ spec:
           value: "80"
         - name: FB_BASEURL
           value: "/"
+        - name: FB_USERNAME
+          value: "admin"
+        - name: FB_PASSWORD
+          value: "admin"
         volumeMounts:
         - name: filebrowser-config
           mountPath: /config
@@ -193,7 +197,7 @@ spec:
     port: 9000
     targetPort: 9000
     protocol: TCP
-  type: ClusterIP
+  type: NodePort
 ---
 # FileBrowser Service
 apiVersion: v1
